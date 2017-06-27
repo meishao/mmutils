@@ -1,6 +1,15 @@
 # mmutils
 Tools for working with MaxMind GeoIP csv and dat files
 
+環境配置：
+```
+git clone https://github.com/mteodoro/mmutils.git
+cd mmutils
+virtualenv env
+source env/bin/activate
+pip install -r requirements.txt
+```
+
 実行方法：
 python <変換プログラム> <脅威IPアドレスリスト> <脅威種別>
 
@@ -12,6 +21,41 @@ python <変換プログラム> <脅威IPアドレスリスト> <脅威種別>
 出力：
 cti_output.csv - 中間変換データ
 cti.dat - maxmindデータベース用
+
+データ確認：
+```
+$ ipython
+WARNING: Attempting to work in a virtualenv. If you encounter problems, please install IPython inside the virtualenv.
+Python 2.7.10 (default, Jul 14 2015, 19:46:27) 
+Type "copyright", "credits" or "license" for more information.
+
+IPython 3.0.0 -- An enhanced Interactive Python.
+?         -> Introduction and overview of IPython's features.
+%quickref -> Quick reference.
+help      -> Python's own help system.
+object?   -> Details about 'object', use 'object??' for extra details.
+
+In [1]: import pygeoip
+
+In [2]: geo = pygeoip.GeoIP('cti.dat')
+
+In [3]: print json.dumps(geo.record_by_addr('10.0.0.1'), indent=4, sort_keys=True)
+{
+    "area_code": 650, 
+    "city": "Redwood City", 
+    "continent": "NA", 
+    "country_code": "US", 
+    "country_code3": "USA", 
+    "country_name": "United States", 
+    "dma_code": 807, 
+    "latitude": 37.4914, 
+    "longitude": -122.211, 
+    "metro_code": "San Francisco, CA", 
+    "postal_code": "94063", 
+    "region_code": "CA", 
+    "time_zone": "America/Los_Angeles"
+}
+```
 
 Fluentdと連携使用方法：
 
