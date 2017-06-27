@@ -5,7 +5,9 @@ Tools for working with MaxMind GeoIP csv and dat files
 python <変換プログラム> <脅威IPアドレスリスト> <脅威種別>
 
 実行例：
+```
 # python cti.py malicious_ips-Jun_26_2017.csv malware
+```
 
 出力：
 cti_output.csv - 中間変換データ
