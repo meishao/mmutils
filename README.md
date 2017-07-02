@@ -1,82 +1,112 @@
-mmutils
-=======
-
-**Note: These tools work with MaxMind Legacy format databases.  For information on the new GeoIP2 databases, including a writer, see: http://maxmind.github.io/MaxMind-DB/**
-
+# mmutils
 Tools for working with MaxMind GeoIP csv and dat files
-------------------------------------------------------
 
-**ipinfo.py**: Convenience wrapper for GeoIPCity and GeoIPASNum databases.  Use init\_geo or init\_asn to override default db locations and flags.
+環境配置：
+```
+git clone https://github.com/mteodoro/mmutils.git
+cd mmutils
+virtualenv env
+source env/bin/activate
+pip install -r requirements.txt
+```
 
-Example:
+実行方法：
+python <変換プログラム> <脅威IPアドレスリスト> <脅威種別>
 
-    >>> import ipinfo
-    >>> ipinfo.get_geo('8.8.8.8')
-    IpGeo(area_code=650, city=u'Mountain View', country_code=u'US', country_code3=u'USA', country_name=u'United States', dma_code=807, latitude=37.419200897216797, longitude=-122.05740356445312, metro_code=807, postal_code=u'94043', region=u'CA', region_name=u'California', time_zone=u'America/Los_Angeles')
-    >>> ipinfo.get_asn('8.8.8.8')
-    IpAsn(asn=15169, asname=u'Google Inc.')
+実行例：
+```
+# python cti.py malicious_ips-Jun_26_2017.csv malware
+```
 
+出力：
+cti_output.csv - 中間変換データ
+cti.dat - maxmindデータベース用
 
-**csv2dat.py**: Converts MaxMind CSV files to .dat files.  Useful for augmenting MaxMind data.  Currently supports GeoIP City and ASN database types.  Note: runs 4-5x faster under pypy.
+データ確認：
+```
+$ ipython
+WARNING: Attempting to work in a virtualenv. If you encounter problems, please install IPython inside the virtualenv.
+Python 2.7.10 (default, Jul 14 2015, 19:46:27) 
+Type "copyright", "credits" or "license" for more information.
 
-Examples:
+IPython 3.0.0 -- An enhanced Interactive Python.
+?         -> Introduction and overview of IPython's features.
+%quickref -> Quick reference.
+help      -> Python's own help system.
+object?   -> Details about 'object', use 'object??' for extra details.
 
-Convert MaxMind ASN CSV to .dat format:
+In [1]: import pygeoip
 
-    $ csv2dat.py -w mmasn.dat mmasn GeoIPASNum2.csv
-    wrote 356311-node trie with 285539 networks (42664 distinct labels) in 3 seconds
+In [2]: geo = pygeoip.GeoIP('cti.dat')
 
-Test mmasn.dat file against list of IPs, one per line:
+In [3]: print json.dumps(geo.record_by_addr('10.0.0.1'), indent=4, sort_keys=True)
+{
+    "area_code": 650, 
+    "city": "Redwood City", 
+    "continent": "NA", 
+    "country_code": "US", 
+    "country_code3": "USA", 
+    "country_name": "United States", 
+    "dma_code": 807, 
+    "latitude": 37.4914, 
+    "longitude": -122.211, 
+    "metro_code": "San Francisco, CA", 
+    "postal_code": "94063", 
+    "region_code": "CA", 
+    "time_zone": "America/Los_Angeles"
+}
+```
 
-    $ csv2dat.py test GeoIPASNum.dat mmasn.dat ips.txt
-    ok: 670135 bad: 0
+Fluentdと連携使用方法：
 
-Convert MaxMind City files to .dat format:
+apache例：
+```
+<source>
+  @type tail
+  path /var/log/httpd/access_log
+  tag geo.access
+  format apache2
+  #message_key message
+</source>
 
-    $ csv2dat.py -w mmcity.dat -l GeoLiteCity-Location.csv mmcity GeoLiteCity-Blocks.csv
-    wrote 2943570-node trie with 2939800 networks (109370 distinct labels) in 36 seconds
+#<filter vm.access.**>
+#  @type record_transformer
+#  <record>
+#    tag vm.access.${record["host"]}
+#  </record>
+#</filter>
 
-Test mmcity.dat file against list of IPs, one per line:
+<match geo.access>
+  @type geoip
+  geoip_lookup_key host
+  geoip_database "/opt/td-agent/embedded/lib/ruby/gems/2.1.0/gems/fluent-plugin-geoip-0.7.0/data/cti.dat"
+  
+  <record> 
+    cti_type ${city['host']}
+  </record>
+ 
+  remove_tag_prefix geo.
+  add_tag_prefix ip.
+  skip_adding_null_record false
+</match>
 
-    $ csv2dat.py test GeoLiteCity.dat mmcity.dat ips.txt
-    ok: 670135 bad: 0
+<match ip.access>
+  @type geoip
+  geoip_lookup_key host
+  geoip_database "/opt/td-agent/embedded/lib/ruby/gems/2.1.0/gems/fluent-plugin-geoip-0.7.0/data/GeoLiteCity.dat"
+  <record>
+    cti_country ${country_name['host']}
+    cti_city ${city['host']}
+  </record>
 
-Flatten MaxMind City CSVs into one file (for easier editing):
+  remove_tag_prefix ip.
+  add_tag_prefix vm.
+  skip_adding_null_record false
+</match>
 
-    $ csv2dat.py -l GeoLiteCity-Location.csv flat GeoLiteCity-Blocks.csv > mmcity_flat.csv
-
-Convert flattened MaxMind City files to .dat format:
-
-    $ csv2dat.py -w mmcity.dat mmcity flatcity.csv
-    wrote 2943570-node trie with 2939800 networks (109370 distinct labels) in 36 seconds
-
-Convert MaxMind ASN v6 CSV to .dat format:
-
-    $ csv2dat.py -w mmasn6.dat mmasn6 GeoIPASNum2v6.csv
-    wrote 63125-node trie with 35983 networks (6737 distinct labels) in 2 seconds
-
-Convert MaxMind City v6 CSV to .dat format:
-
-    $ csv2dat.py -w mmcity6.dat mmcity6 GeoLiteCityv6.csv
-    wrote 80637-node trie with 13074 networks (205 distinct labels) in 2 seconds
-
-Convert MaxMind Country CSV to .dat format:
-
-    $ csv2dat.py -w mmcountry.dat mmcountry GeoIPCountryWhois.csv
-    wrote 136109-node trie with 133498 networks (250 distinct labels) in 8 seconds
-
-Convert MaxMind Country v6 CSV to .dat format:
-
-    $ csv2dat.py -w mmcountry6.dat mmcountry6 GeoIPv6.csv
-    wrote 102601-node trie with 17580 networks (215 distinct labels) in 3 seconds
-
-Convert MaxMind ISP CSV to .dat format:
-
-    $ csv2dat.py -w mmisp.dat mmisp GeoIPISP.csv
-    wrote 378619-node trie with 303605 networks (45963 distinct labels) in 19 seconds
-
-Convert MaxMind Org CSV to .dat format:
-
-    $ csv2dat.py -w mmorg.dat mmorg GeoIPOrg.csv
-    wrote 378619-node trie with 303605 networks (45963 distinct labels) in 19 seconds
-
+<match vm.access>
+#  @type file
+#  path /var/log/td-agent/access/vm.access
+  @type stdout
+</match>
+```
