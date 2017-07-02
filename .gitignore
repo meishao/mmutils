@@ -20,6 +20,8 @@ lib64
 
 # Installer logs
 pip-log.txt
+cti_firehol.dat
+cti_firehol_output.csv
 
 # Unit test / coverage reports
 .coverage
