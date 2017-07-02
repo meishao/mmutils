@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+'''
+Usage:
+python cti_firehol.py
+'''
+
 import sys,socket
 import os
 import commands
