@@ -1,2 +1,3 @@
-startIP,endIP,country,region,city,postalCode,latitude,longitude,metroCode,areaCode
-167772161,184549375,,,malware,,,,,
+version https://git-lfs.github.com/spec/v1
+oid sha256:a3491696a455b6a58d61f36146734ff0dd9fa2d9870a2aeed743062fe9afa401
+size 118
