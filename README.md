@@ -1,4 +1,21 @@
-# mmutils
+# 脅威IPと脅威種類連携
+
+## iplistsのIPリストを一括導入する場合、下記手順にて行う。
+Fireholの更新リストをiplistsフォルダに保存する。
+
+実行方法：
+python cti_firehol.py
+
+出力：
+cti_firehol_output.csv
+cti_firehol.dat
+
+使用方法：
+cti_firehol.datをGEOIPプラグインのdataフォルダに保存する。
+
+
+
+## カスタマIPリストを追加する場合、下記手順にて行う。
 Tools for working with MaxMind GeoIP csv and dat files
 
 環境配置：
